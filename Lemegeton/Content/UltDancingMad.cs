@@ -1072,6 +1072,7 @@ namespace Lemegeton.Content
                 _fireWater.Clear();
                 _currentSet = 0;
                 _kefker = null;
+                _lateGazesMarked = false;
             }
 
             public void TestFunctionality()
@@ -1194,6 +1195,26 @@ namespace Lemegeton.Content
                 CurrentSet++;
             }
 
+            private bool _lateGazesMarked = false;
+
+            private AutomarkerPayload BuildLateGazePayload()
+            {
+                AutomarkerPayload ap = new AutomarkerPayload(_state, SelfMarkOnly, AsSoftmarker);
+                var gazes = (from ix in _gazes orderby ix.Item2 descending select ix).Take(2).ToList();
+                if (gazes[0].Item3 == false)
+                {
+                    ap.Assign(Signs2.Roles["LookAt1"], gazes[0].Item1);
+                    ap.Assign(Signs2.Roles["LookAt2"], gazes[1].Item1);
+                }
+                else
+                {
+                    ap.Assign(Signs2.Roles["LookAway1"], gazes[0].Item1);
+                    ap.Assign(Signs2.Roles["LookAway2"], gazes[1].Item1);
+                }
+                _lateGazesMarked = true;
+                return ap;
+            }
+
             private void PerformMarking()
             {
                 AutomarkerPayload ap = null;
@@ -1274,23 +1295,21 @@ namespace Lemegeton.Content
                             _state.ClearMarkerOn(_kefker, soft == false, soft);
                         }
                         break;
-                    case 8: // forked lightning lost
+                    case 8: // forked lightning lost, late gaze if already known (blizzard iii blowout)
                         _state.ClearAutoMarkers();
-                        break;
-                    case 9: // late gaze (blizzard iii blowout)
+                        if (_gazes.Count >= 4)
                         {
-                            ap = new AutomarkerPayload(_state, SelfMarkOnly, AsSoftmarker);
-                            var gazes = (from ix in _gazes orderby ix.Item2 descending select ix).Take(2).ToList();
-                            if (gazes[0].Item3 == false)
-                            {
-                                ap.Assign(Signs2.Roles["LookAt1"], gazes[0].Item1);
-                                ap.Assign(Signs2.Roles["LookAt2"], gazes[1].Item1);
-                            }
-                            else
-                            {
-                                ap.Assign(Signs2.Roles["LookAway1"], gazes[0].Item1);
-                                ap.Assign(Signs2.Roles["LookAway2"], gazes[1].Item1);
-                            }
+                            ap = BuildLateGazePayload();
+                        }
+                        else
+                        {
+                            Log(State.LogLevelEnum.Debug, null, "Late gazes not yet known ({0} gazes), deferring to set 9", _gazes.Count);
+                        }
+                        break;
+                    case 9: // thunder charged, fallback for late gaze
+                        if (_lateGazesMarked == false && _gazes.Count >= 4)
+                        {
+                            ap = BuildLateGazePayload();
                         }
                         break;
                     case 10: // mana release
