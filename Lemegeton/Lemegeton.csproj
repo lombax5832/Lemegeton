@@ -40,6 +40,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Plugin manifest (gitignored, local only). Copied next to the DLL so Dalamud accepts it as a dev plugin. -->
+    <None Include="Lemegeton.json" Condition="Exists('Lemegeton.json')" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Reference Include="Dalamud">
       <HintPath>C:\Users\Moskau\AppData\Roaming\XIVLauncher\addon\Hooks\dev\Dalamud.dll</HintPath>
 	  <Private>false</Private>
